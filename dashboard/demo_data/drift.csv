@@ -1,0 +1,5 @@
+variable,psi,ks_statistic,ks_pvalue,drift
+voltage,0.5416,0.3006,0.0,True
+rotation,0.0005,0.0065,0.8328316225262835,False
+pressure,0.1678,0.1702,8.432138163396336e-235,False
+vibration,0.7263,0.3527,0.0,True

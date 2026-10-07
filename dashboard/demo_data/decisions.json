@@ -1,0 +1,28 @@
+[
+  {
+    "at": "2026-10-07T09:32:44",
+    "promoted": true,
+    "reason": "no champion yet: first model is promoted",
+    "champion_version": null,
+    "challenger_version": "1",
+    "champion_cost": null,
+    "challenger_cost": 1411000.0,
+    "window": "2025-03-07 11:00:00 -> 2025-03-19 00:00:00",
+    "trigger": "initial"
+  },
+  {
+    "at": "2026-10-07T09:33:51",
+    "promoted": true,
+    "reason": "challenger lowers the total cost by 34.0% (required: 2.0%)",
+    "champion_version": "1",
+    "challenger_version": "2",
+    "champion_cost": 6432000.0,
+    "challenger_cost": 4244500.0,
+    "window": "2025-05-15 23:00:00 -> 2025-05-29 23:00:00",
+    "trigger": "drift",
+    "drifted_variables": [
+      "voltage",
+      "vibration"
+    ]
+  }
+]

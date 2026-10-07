@@ -1,0 +1,81 @@
+# docker compose up --build   (copy .env.example to .env first)
+# Airflow:   http://localhost:8080  (login printed in the airflow container logs)
+# MLflow:    http://localhost:5000
+# API docs:  http://localhost:8000/docs
+# Dashboard: http://localhost:8501
+
+x-pmp-env: &pmp-env
+  DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-pmp}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-pmp}
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: ${POSTGRES_DB:-pmp}
+  POSTGRES_USER: ${POSTGRES_USER:-pmp}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+  MLFLOW_TRACKING_URI: http://mlflow:5000
+  MODELS_DIR: /app/models
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pmp}
+      POSTGRES_USER: ${POSTGRES_USER:-pmp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pmp} -d ${POSTGRES_DB:-pmp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mlflow:
+    build: {context: ., dockerfile: docker/ml.Dockerfile}
+    command: mlflow server --host 0.0.0.0 --port 5000 --allowed-hosts mlflow:5000,mlflow,localhost:5000,localhost,127.0.0.1:5000 --backend-store-uri sqlite:////mlruns/mlflow.db --artifacts-destination /mlruns/artifacts
+    ports: ["5000:5000"]
+    volumes: [mlruns:/mlruns]
+
+  airflow:
+    build: {context: ., dockerfile: docker/airflow.Dockerfile}
+    command: standalone
+    depends_on:
+      postgres: {condition: service_healthy}
+    environment:
+      <<: *pmp-env
+      DATA_SOURCE: postgres
+      DATA_DIR: /opt/pmp/data/raw
+      MODELS_DIR: /opt/pmp/models
+      LOGS_DIR: /opt/pmp/logs
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+    ports: ["8080:8080"]
+    volumes:
+      - ./data:/opt/pmp/data
+      - ./models:/opt/pmp/models
+      - ./logs:/opt/pmp/logs
+      - ./dbt:/opt/pmp/dbt
+      - ./airflow/dags:/opt/airflow/dags
+
+  api:
+    build: {context: ., dockerfile: docker/api.Dockerfile}
+    depends_on:
+      postgres: {condition: service_healthy}
+    environment:
+      <<: *pmp-env
+      DATA_SOURCE: ${DATA_SOURCE:-csv}
+      DATA_DIR: /app/data/raw
+      API_KEY: ${API_KEY:-}
+    ports: ["8000:8000"]
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+
+  dashboard:
+    build: {context: ., dockerfile: docker/dashboard.Dockerfile}
+    environment:
+      API_URL: http://api:8000
+    ports: ["8501:8501"]
+
+volumes:
+  pgdata:
+  mlruns:

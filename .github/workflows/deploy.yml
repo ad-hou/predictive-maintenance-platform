@@ -1,0 +1,41 @@
+name: deploy
+
+# Manual deployment: build the API image, push it to ECR, then ask the EC2 instance to pull it
+# through SSM. The instance script health-checks the new container and rolls back on failure.
+# Authentication uses GitHub OIDC (no long-lived AWS keys in GitHub).
+# Needed repository variables: AWS_REGION, AWS_DEPLOY_ROLE_ARN, ECR_REPOSITORY, EC2_INSTANCE_ID.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push
+        run: |
+          IMAGE=${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}
+          docker build -f docker/api.Dockerfile -t "$IMAGE:${GITHUB_SHA}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${GITHUB_SHA}"
+          docker push "$IMAGE:latest"
+      - name: Deploy on the instance (health check + rollback inside the script)
+        run: |
+          CMD_ID=$(aws ssm send-command \
+            --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
+            --document-name AWS-RunShellScript \
+            --parameters "commands=[\"/usr/local/bin/pmp-deploy.sh ${GITHUB_SHA}\"]" \
+            --query Command.CommandId --output text)
+          aws ssm wait command-executed --command-id "$CMD_ID" --instance-id "${{ vars.EC2_INSTANCE_ID }}"
+          aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+            --query '{status:Status,output:StandardOutputContent}' --output text

@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: raw_telemetry
+      - name: raw_errors
+      - name: raw_maintenance
+      - name: raw_failures
+      - name: raw_machines
+  - name: ml
+    schema: ml
+    tables:
+      - name: machine_risk_predictions

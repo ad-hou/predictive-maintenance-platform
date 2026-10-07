@@ -1,0 +1,13 @@
+# Copy to ~/.dbt/profiles.yml (or set DBT_PROFILES_DIR). Credentials come from environment variables.
+predictive_maintenance:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('POSTGRES_HOST', 'localhost') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | as_number }}"
+      user: "{{ env_var('POSTGRES_USER', 'pmp') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'pmp') }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'pmp') }}"
+      schema: public
+      threads: 4

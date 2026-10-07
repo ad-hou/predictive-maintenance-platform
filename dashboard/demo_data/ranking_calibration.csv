@@ -1,0 +1,6 @@
+model,pr_auc_calibration,fit_seconds
+hist_gradient_boosting,0.28903521676739635,12.6
+lightgbm,0.27102408253005944,3.2
+random_forest,0.23325510717314663,41.6
+logistic_regression,0.22747201956749635,0.6
+isolation_forest (unsupervised),0.06495276503534683,0.0

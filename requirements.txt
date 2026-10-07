@@ -1,0 +1,20 @@
+# Full environment (training, DBT, API, dashboard). Versions are the ones the test-suite ran with.
+pandas==3.0.5
+numpy==2.5.3
+scipy==1.18.1
+scikit-learn==1.9.1
+lightgbm==4.7.0
+shap==0.52.0
+joblib==1.6.0
+cloudpickle==3.1.2
+mlflow==3.16.1
+SQLAlchemy==2.1.3
+psycopg2-binary==2.9.13
+dbt-postgres==1.11.0
+fastapi==0.142.2
+uvicorn==0.53.0
+pydantic==2.13.5
+streamlit==1.65.0
+altair==6.3.0
+requests==2.34.2
+boto3>=1.34

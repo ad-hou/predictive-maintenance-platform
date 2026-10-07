@@ -1,0 +1,6 @@
+# cp terraform.tfvars.example terraform.tfvars   (terraform.tfvars is git-ignored)
+project       = "pmp"
+region        = "eu-west-3"
+allowed_cidrs = []            # e.g. ["203.0.113.7/32"] to open the API to your IP only
+create_rds    = false         # true adds a db.t4g.micro PostgreSQL (billed while it exists)
+alert_email   = ""            # set to receive a budget alert

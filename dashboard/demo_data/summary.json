@@ -1,0 +1,123 @@
+{
+  "model": "hist_gradient_boosting",
+  "version": "2",
+  "threshold": 0.02702702702702703,
+  "blocks": {
+    "train": {
+      "rows": 165540,
+      "positives": 4383
+    },
+    "calibration": {
+      "rows": 14400,
+      "positives": 179
+    },
+    "threshold": {
+      "rows": 14400,
+      "positives": 348
+    },
+    "test": {
+      "rows": 20220,
+      "positives": 552
+    }
+  },
+  "final_test": {
+    "n": 20220,
+    "positives": 552,
+    "pr_auc": 0.15337907272888898,
+    "roc_auc": 0.6167432366412889,
+    "baseline_pr_auc": 0.027299703264094956,
+    "precision_at_n": 0.28,
+    "failures_caught_share": 0.45652173913043476,
+    "n_per_day": 5,
+    "threshold": 0.02702702702702703,
+    "precision": 0.18440463645943098,
+    "recall": 0.3170289855072464,
+    "confusion": {
+      "tp": 175,
+      "fp": 774,
+      "fn": 377,
+      "tn": 18894
+    },
+    "total_cost": 4244500.0,
+    "cost_do_nothing": 5520000.0,
+    "cost_inspect_all": 10110000.0,
+    "f1": 0.23317788141239174,
+    "brier": 0.02495691503028077
+  },
+  "periods": {
+    "train_period": [
+      "2025-01-01 00:00:00",
+      "2025-04-25 22:00:00"
+    ],
+    "calibration_period": [
+      "2025-04-25 23:00:00",
+      "2025-05-05 22:00:00"
+    ],
+    "threshold_period": [
+      "2025-05-05 23:00:00",
+      "2025-05-15 22:00:00"
+    ],
+    "test_period": [
+      "2025-05-15 23:00:00",
+      "2025-05-29 23:00:00"
+    ],
+    "seed": 42,
+    "reference_medians": {
+      "voltage_mean_3h": 171.7241666666667,
+      "rotation_mean_3h": 442.8128333333332,
+      "pressure_mean_3h": 101.22416666666666,
+      "vibration_mean_3h": 41.03766666666667,
+      "voltage_mean_24h": 171.33033333333333,
+      "rotation_mean_24h": 442.2383541666666,
+      "pressure_mean_24h": 101.06887499999999,
+      "vibration_mean_24h": 40.737562499999996,
+      "voltage_std_24h": 7.214356137840367,
+      "rotation_std_24h": 45.16558795884916,
+      "pressure_std_24h": 9.077727675212955,
+      "vibration_std_24h": 4.535556621301817,
+      "voltage_delta_3h": 0.03099999999997749,
+      "rotation_delta_3h": 0.0,
+      "pressure_delta_3h": 0.018000000000000682,
+      "vibration_delta_3h": 0.009000000000000341,
+      "vibration_max_6h": 45.902,
+      "pressure_max_6h": 110.953,
+      "errors_last_24h": 0.0,
+      "errors_last_72h": 1.0,
+      "hours_since_last_error": 63.0,
+      "hours_since_last_maintenance": 304.0,
+      "hours_since_last_failure": 694.0,
+      "age": 10.0,
+      "model_code": 3.0
+    },
+    "test_metrics": {
+      "n": 20220,
+      "positives": 552,
+      "pr_auc": 0.15337907272888898,
+      "roc_auc": 0.6167432366412889,
+      "baseline_pr_auc": 0.027299703264094956,
+      "precision_at_n": 0.28,
+      "failures_caught_share": 0.45652173913043476,
+      "n_per_day": 5,
+      "threshold": 0.02702702702702703,
+      "precision": 0.18440463645943098,
+      "recall": 0.3170289855072464,
+      "confusion": {
+        "tp": 175,
+        "fp": 774,
+        "fn": 377,
+        "tn": 18894
+      },
+      "total_cost": 4244500.0,
+      "cost_do_nothing": 5520000.0,
+      "cost_inspect_all": 10110000.0,
+      "f1": 0.23317788141239174,
+      "brier": 0.02495691503028077
+    }
+  },
+  "costs_are_hypothetical": true,
+  "costs": {
+    "missed_failure": 10000.0,
+    "useless_inspection": 500.0,
+    "useful_inspection": 500.0
+  }
+}

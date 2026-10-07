@@ -1,0 +1,13 @@
+# Credentials come from environment variables only (no secret in this file). Used by Airflow, CI and docker compose.
+predictive_maintenance:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('POSTGRES_HOST', 'localhost') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | as_number }}"
+      user: "{{ env_var('POSTGRES_USER', 'pmp') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'change-me') }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'pmp') }}"
+      schema: public
+      threads: 4

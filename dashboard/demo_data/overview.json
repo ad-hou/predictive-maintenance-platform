@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-10-07T09:33:55",
+  "synthetic_data": true,
+  "model_name": "hist_gradient_boosting",
+  "model_version": "2",
+  "threshold": 0.02702702702702703,
+  "data": {
+    "rows": 216000,
+    "machines": 60,
+    "missing_rate": 0.0,
+    "duplicate_rate": 0.0,
+    "last_timestamp": "2025-05-30 23:00:00"
+  },
+  "quality_problems": [],
+  "drift_detected": true,
+  "drifted_variables": [
+    "voltage",
+    "vibration"
+  ],
+  "high_risk": 3,
+  "medium_risk": 14
+}

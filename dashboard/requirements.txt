@@ -1,0 +1,5 @@
+# Used by Streamlit Community Cloud (main file: dashboard/app.py). The dashboard only needs the snapshot.
+streamlit>=1.50
+pandas
+altair
+requests

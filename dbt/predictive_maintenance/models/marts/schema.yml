@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: dim_machine
+    columns:
+      - name: machine_id
+        data_tests: [not_null, unique]
+  - name: fact_machine_measurements
+    data_tests:
+      - unique_combination: {arguments: {columns: [machine_id, "timestamp"]}}
+  - name: fact_machine_risk
+    columns:
+      - name: machine_id
+        data_tests: [not_null, unique]
+      - name: failure_probability
+        data_tests:
+          - not_null
+          - accepted_range: {arguments: {min_value: 0, max_value: 1}}
+      - name: risk_level
+        data_tests:
+          - accepted_values: {arguments: {values: ["LOW", "MEDIUM", "HIGH"]}}

@@ -1,0 +1,47 @@
+#!/bin/bash
+set -euo pipefail
+dnf install -y docker
+systemctl enable --now docker
+mkdir -p /opt/pmp/data/raw
+
+# Deploy script: used at boot and by the deploy workflow (through SSM). Rolls back if /health fails.
+cat > /usr/local/bin/pmp-deploy.sh <<'SCRIPT'
+#!/bin/bash
+set -uo pipefail
+TAG="$1"
+REGISTRY="${ecr_url}"
+PARAM="/${project}/api/image_tag"
+PREVIOUS=$(aws ssm get-parameter --region ${region} --name "$PARAM" --query Parameter.Value --output text 2>/dev/null || echo "")
+
+aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin "$${REGISTRY%%/*}"
+aws s3 sync "s3://${bucket}/raw" /opt/pmp/data/raw --region ${region} || true
+
+run() {
+  docker rm -f api >/dev/null 2>&1 || true
+  docker pull "$REGISTRY:$1" && docker run -d --restart unless-stopped --name api -p 8000:8000 \
+    -v /opt/pmp/data:/app/data \
+    -e MODEL_S3_URI="${model_uri}" -e DATA_SOURCE="${data_source}" -e AWS_REGION="${region}" \
+    --log-driver awslogs --log-opt awslogs-region=${region} --log-opt awslogs-group=${log_group} \
+    "$REGISTRY:$1"
+}
+
+healthy() {
+  for _ in $(seq 1 30); do
+    curl -fsS http://localhost:8000/health | grep -q '"status":"ok"' && return 0
+    sleep 5
+  done
+  return 1
+}
+
+if run "$TAG" && healthy; then
+  aws ssm put-parameter --region ${region} --name "$PARAM" --value "$TAG" --type String --overwrite >/dev/null
+  echo "deployed $TAG"
+else
+  echo "deploy of $TAG FAILED"
+  if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "$TAG" ]; then echo "rolling back to $PREVIOUS"; run "$PREVIOUS"; fi
+  exit 1
+fi
+SCRIPT
+chmod +x /usr/local/bin/pmp-deploy.sh
+
+/usr/local/bin/pmp-deploy.sh "${image_tag}" || true
