@@ -24,3 +24,5 @@ infrastructure/terraform/*.tfvars
 !infrastructure/terraform/terraform.tfvars.example
 airflow/logs/
 .DS_Store
+_to_delete/
+dbt/predictive_maintenance/.user.yml
