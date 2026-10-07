@@ -1,56 +1,56 @@
-# Predictive Maintenance Platform
+# Plateforme de maintenance prédictive
 
-End-to-end predictive maintenance platform combining Data Engineering, Machine Learning and MLOps on AWS.
+Plateforme de maintenance prédictive de bout en bout, qui combine Data Engineering, Machine Learning et MLOps, déployable sur AWS.
 
-![Demo: dashboard, drift detection, Airflow pipeline](docs/demo.gif)
+![Démo : dashboard, détection de dérive, pipeline Airflow](docs/demo.gif)
 
-> **Read this first.** The data is **synthetic** and the euro costs are **hypothetical**. Nothing here says anything about real machines. The project demonstrates the engineering around a model (pipelines, tests, monitoring, safe promotion, deployment), not a model that works on a real fleet.
+> **À lire en premier.** Les données sont **synthétiques** et les coûts en euros sont **hypothétiques**. Rien ici ne dit quoi que ce soit sur de vraies machines. Le projet montre l'ingénierie autour d'un modèle (pipelines, tests, surveillance, promotion sécurisée, déploiement), pas un modèle qui fonctionnerait sur un vrai parc.
 
-## What it does
+## Ce que ça fait
 
-Every machine gets a daily risk score: *will it fail in the next 24 hours?* The maintenance team can inspect only a few machines per day (default 5), so the useful output is a **ranking**, plus a threshold chosen to minimise a business cost (missed failure vs. useless inspection).
+Chaque machine reçoit chaque jour un score de risque : *va-t-elle tomber en panne dans les 24 prochaines heures ?* L'équipe de maintenance ne peut inspecter que quelques machines par jour (5 par défaut). Le résultat utile est donc un **classement**, accompagné d'un seuil choisi pour minimiser un coût métier (panne ratée contre inspection inutile).
 
 ```
-sensor/error/maintenance CSV ──► PostgreSQL (raw) ──► DBT (staging → intermediate → marts, tested)
-                                                          │
-                                  Airflow orchestrates    ▼
-                                  features ► model comparison ► MLflow registry (champion / challenger)
-                                                          │
-                       drift (PSI + KS) ► retrain on recent window ► promote only if cost drops ≥ 2 %
-                                                          │
-                       FastAPI (/predict, /machines, explanations) ◄── Streamlit dashboard
-                                                          │
-                              Docker Compose locally · Terraform + GitHub Actions on AWS
+CSV capteurs / erreurs / maintenance ──► PostgreSQL (brut) ──► DBT (staging → intermediate → marts, testés)
+                                                                  │
+                                       Airflow orchestre          ▼
+                                       features ► comparaison des modèles ► registre MLflow (champion / challenger)
+                                                                  │
+                  dérive (PSI + KS) ► réentraînement sur une fenêtre récente ► promotion seulement si le coût baisse d'au moins 2 %
+                                                                  │
+                          FastAPI (/predict, /machines, explications) ◄── dashboard Streamlit
+                                                                  │
+                                  Docker Compose en local · Terraform + GitHub Actions sur AWS
 ```
 
-## Design choices that matter
+## Choix de conception importants
 
-- **Chronological evaluation only.** Train / calibration / threshold / test blocks follow time. No random split, no leakage across blocks.
-- **Calibrated probabilities.** Isotonic calibration on a separate block, then a cost-optimal threshold on another block, identical procedure for every model.
-- **Metrics that fit the problem.** PR-AUC against the base rate, precision@N inspections per day, and total cost in euros against "do nothing" and "inspect everything".
-- **Safe promotion.** A challenger trained after drift is compared with the champion on the *same unseen window*. It replaces the champion only if the cost drops by at least 2 %. Every decision is written to `logs/promotion_decisions.jsonl`; `rollback` restores the previous champion.
-- **No train/serve skew.** The API computes features with a fast numpy path; a test checks it matches the pandas training features.
-- **Idempotent pipelines.** Loads truncate and append; predictions are replaced per `run_date`. A failing DBT test stops the DAG before any new prediction or model is produced.
+- **Évaluation strictement chronologique.** Les blocs entraînement / calibration / seuil / test suivent le temps. Pas de découpage aléatoire, aucune fuite d'un bloc à l'autre.
+- **Probabilités calibrées.** Calibration isotonique sur un bloc séparé, puis seuil optimal en coût sur un autre bloc, avec la même procédure pour tous les modèles.
+- **Des métriques adaptées au problème.** PR-AUC comparée au taux de base, précision@N inspections par jour, et coût total en euros comparé à « ne rien faire » et « tout inspecter ».
+- **Promotion sécurisée.** Un challenger entraîné après une dérive est comparé au champion sur la *même fenêtre inédite*. Il ne le remplace que si le coût baisse d'au moins 2 %. Chaque décision est écrite dans `logs/promotion_decisions.jsonl`, et `rollback` rétablit le champion précédent.
+- **Pas de décalage entraînement/service.** L'API calcule les features avec un chemin numpy rapide, et un test vérifie qu'il donne le même résultat que les features pandas de l'entraînement.
+- **Pipelines idempotents.** Les chargements vident puis réinsèrent ; les prédictions sont remplacées par `run_date`. Un test DBT en échec arrête le DAG avant toute nouvelle prédiction ou nouveau modèle.
 
-## Demo scenario (synthetic data)
+## Scénario de démonstration (données synthétiques)
 
-`python -m src.cli demo` runs: train v1 → inject drift on a share of machines → detect it (PSI on voltage and vibration far above 0.2, pressure below the threshold and not flagged) → retrain → compare → promote. A control run without drift triggers no action. Exact figures are in `dashboard/demo_data/` and the Model / Monitoring pages of the dashboard.
+`python -m src.cli demo` enchaîne : entraînement de la v1, injection d'une dérive sur une partie des machines, détection (PSI sur la tension et la vibration très au-dessus de 0,2, pression sous le seuil donc non signalée), réentraînement, comparaison, promotion. Un essai témoin sans dérive ne déclenche aucune action. Les chiffres exacts sont dans `dashboard/demo_data/` et dans les pages Modèle et Surveillance du dashboard.
 
-## Quick start (no Docker)
+## Démarrage rapide (sans Docker)
 
 ```bash
 python -m venv .venv && source .venv/bin/activate        # Python 3.12
 pip install -r requirements-dev.txt
-make demo         # data → train → drift → retrain → promote → dashboard snapshot
+make demo         # données → entraînement → dérive → réentraînement → promotion → instantané du dashboard
 make test
-make dashboard    # http://localhost:8501 (reads the snapshot, no backend needed)
+make dashboard    # http://localhost:8501 (lit l'instantané, aucun backend nécessaire)
 make api          # http://localhost:8000/docs
 ```
 
-## Full stack with Docker
+## Pile complète avec Docker
 
 ```bash
-cp .env.example .env        # change the password
+cp .env.example .env        # change le mot de passe
 docker compose up --build
 ```
 
@@ -58,37 +58,37 @@ docker compose up --build
 |---|---|
 | Airflow | http://localhost:8080 |
 | MLflow | http://localhost:5000 |
-| API docs | http://localhost:8000/docs |
+| Documentation de l'API | http://localhost:8000/docs |
 | Dashboard | http://localhost:8501 |
 
-Trigger the `predictive_maintenance_pipeline` DAG in Airflow, then `drift_retrain_pipeline`.
+Déclenche le DAG `predictive_maintenance_pipeline` dans Airflow. Le mot de passe de l'utilisateur `admin` est affiché dans les logs du conteneur `airflow` au premier démarrage. Une fois le DAG terminé, appelle `POST /admin/reload` sur l'API pour qu'elle charge le modèle.
 
 ## AWS
 
-`infrastructure/terraform/` creates S3, ECR, an EC2 instance for the API, least-privilege IAM, CloudWatch alarms and an optional budget and RDS. See its README. **Apply it yourself with your own credentials; the repository never contains keys.** GitHub Actions deploys through OIDC (`deploy.yml`) with a health check and automatic rollback on the instance.
+`infrastructure/terraform/` crée un bucket S3, un dépôt ECR, une instance EC2 pour l'API, des rôles IAM au moindre privilège, des alarmes CloudWatch, et en option un budget d'alerte et une base RDS. Voir le README de ce dossier. **Applique-le toi-même avec tes propres identifiants : le dépôt ne contient jamais de clés.** GitHub Actions déploie via OIDC (`deploy.yml`) avec un contrôle de santé et un retour arrière automatique sur l'instance.
 
-## Layout
+## Organisation du dépôt
 
 ```
-src/            ingestion, features, training, monitoring, registry, CLI
-api/            FastAPI service
-dbt/            DBT project (staging, intermediate, marts, custom tests)
+src/            ingestion, features, entraînement, surveillance, registre, CLI
+api/            service FastAPI
+dbt/            projet DBT (staging, intermediate, marts, tests personnalisés)
 airflow/dags/   orchestration
-dashboard/      Streamlit app + demo snapshot
+dashboard/      application Streamlit + instantané de démonstration
 infrastructure/ Terraform
 load_tests/     Locust
-tests/          unit, integration, train/serve skew
-docs/           architecture, data dictionary, decisions, model card, cost assumptions
+tests/          tests unitaires, d'intégration, décalage entraînement/service
+docs/           architecture, dictionnaire de données, décisions, fiche modèle, hypothèses de coût
 ```
 
-## Known limits
+## Limites connues
 
-- Synthetic data; results (low PR-AUC on a deliberately hard task) say nothing about real equipment. An adapter exists for the Azure PdM Kaggle dataset, but its column names still need to be checked against the real files.
-- Costs are assumptions, see `docs/cost_assumptions.md`.
-- The champion is selected on calibration-block PR-AUC; in some runs another model has a lower test cost. See `docs/decisions.md`.
-- Local load-test figures (`docs/results.md`) come from a small 2-core machine and do not represent AWS performance.
-- Terraform and the GitHub Actions workflows were written but not run by the author's tooling; CI will be their first real execution.
+- Les données sont synthétiques : les résultats (PR-AUC modeste sur une tâche volontairement difficile) ne disent rien sur de vrais équipements. Un adaptateur existe pour le jeu de données Azure PdM de Kaggle, mais ses noms de colonnes restent à vérifier sur les vrais fichiers.
+- Les coûts sont des hypothèses, voir `docs/cost_assumptions.md`.
+- Le champion est choisi sur la PR-AUC du bloc de calibration. Dans certaines exécutions, un autre modèle a un coût de test plus bas. Voir `docs/decisions.md`.
+- Les chiffres du test de charge en local (`docs/results.md`) viennent d'une petite machine à 2 cœurs et ne représentent pas les performances sur AWS.
+- Terraform n'a été ni appliqué ni déployé sur AWS ; il est seulement validé par la CI (`fmt`, `validate`). Le workflow `deploy.yml` n'a jamais été exécuté.
 
-## License
+## Licence
 
 MIT
